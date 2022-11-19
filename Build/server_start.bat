@@ -1,2 +1,2 @@
-cd ./LocalServer
+cd ./Server
 npm run prod
