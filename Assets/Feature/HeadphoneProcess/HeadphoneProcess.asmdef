@@ -1,0 +1,16 @@
+{
+    "name": "HeadphoneProcess",
+    "rootNamespace": "",
+    "references": [
+        "GUID:69f301837ec16cf498428d9320f1b8d5"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}
