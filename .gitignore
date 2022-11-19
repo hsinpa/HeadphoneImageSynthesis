@@ -26,3 +26,6 @@ Logs/
 
 # Unity3D Generated File On Crash Reports
 sysinfo.txt
+
+/Build/Server/node_modules
+package-lock.json
