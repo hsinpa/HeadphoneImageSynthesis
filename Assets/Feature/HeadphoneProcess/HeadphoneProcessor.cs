@@ -77,11 +77,12 @@ namespace Hsinpa.Headphone
 
             if (index >= folder_array.Length) {
                 Application.Quit();
+                Debug.Log("Application Quit");
                 return;
             }
 
-            //try
-            //{
+            try
+            {
                 SetSpirteByDirection(folder_array[index]);
                 string fullDirPath = Path.Combine(Application.streamingAssetsPath, HeadphoneStatic.Files.Input, folder_array[index]);
                 string rawColorImagePath = Path.Combine(fullDirPath, HeadphoneStatic.Files.Raw);
@@ -122,12 +123,12 @@ namespace Hsinpa.Headphone
                 DebugCanvas.gameObject.SetActive(true);
                 _ = ProcessFolder(index + 1);
             }
-            //}
-            //catch {
+            }
+            catch {
 
-            //    _ = ProcessFolder(index + 1);
+                _ = ProcessFolder(index + 1);
 
-            //}
+            }
         }
 
         private void ProcessEarphonePosition(HeadphoneSegment.SegmentStruct segmentStruct, int colorTexWidth, int colorTexHeight) {
