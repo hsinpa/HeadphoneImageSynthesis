@@ -4,7 +4,9 @@ export const FilePath = Object.freeze({
     
     "TargetInputPath" : "..//HeadphoneImgProcessing_Data//StreamingAssets//Input",
     "TargetOutputPath" : "..//HeadphoneImgProcessing_Data//StreamingAssets//Output",
-    "UnityEXEPath" : "..//HeadphoneImgProcessing.exe"
+    "UnityEXEPath" : "..//HeadphoneImgProcessing.exe",
+
+    "FlagFilePath" : "..//HeadphoneImgProcessing_Data//StreamingAssets//Flag.txt"
 });
 
 export const RequestParameter = Object.freeze({

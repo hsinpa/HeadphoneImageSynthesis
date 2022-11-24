@@ -14,6 +14,8 @@ namespace Hsinpa.Headphone
             public const string Raw = "origin.jpg";
             public const string SegVision = "user_seg_vis.png";
             public const string OutputFileName = "try_on_result.jpg";
+
+            public const string FlagFile = "Flag.txt";
         }
 
         public class Segment {

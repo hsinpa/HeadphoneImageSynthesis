@@ -58,6 +58,11 @@ namespace Hsinpa.Headphone
         private Camera m_camera;
         private HeadphoneOutput m_headphoneOutput;
 
+        private const float StepTime = 1; //sec
+        private float _recordStepTime; 
+
+        private bool _internalProcessFlag = false;
+        private string _flagFileFullPath;
         private void Start()
         {
             m_camera = Camera.main;
@@ -67,17 +72,40 @@ namespace Hsinpa.Headphone
             canvas_center_x = (int) (CanvasTransform.sizeDelta.x * 0.5f);
             canvas_cneter_y = (int)(CanvasTransform.sizeDelta.y * 0.5f);
 
-            _ = ProcessFolder(index: 0);
+            _flagFileFullPath = Path.Combine(Application.streamingAssetsPath, HeadphoneStatic.Files.FlagFile);
+
+        }
+
+        private void Update()
+        {
+            if (_internalProcessFlag) return;
+
+            if (Time.time > _recordStepTime) {
+
+                _recordStepTime = Time.time + StepTime;
+
+                string flag = IOUtility.GetFileText(_flagFileFullPath);
+
+                if (flag == "0")
+                    _ = ProcessFolder(0);
+
+            }
         }
 
         private async Task ProcessFolder(int index) {
+
+            _internalProcessFlag = true;
 
             //Hide core b until c_0;
             Headphone_Core_B.enabled = false;
 
             if (index >= folder_array.Length) {
-                Application.Quit();
-                Debug.Log("Application Quit");
+
+                IOUtility.SaveFileText(_flagFileFullPath, "1");
+
+                _internalProcessFlag = false;
+
+                Debug.Log("Process done");
                 return;
             }
 
@@ -104,22 +132,18 @@ namespace Hsinpa.Headphone
                 HeadphoneSegment.SegmentStruct segmentStruct =  await m_headphoneSegment.ProcessVisionSegment(segVisionImagePath, visionWidth, HeadphoneStatic.Segment.Height, targetColor);
                 m_headphoneSegment.SetDebugTexture(TestElementA);
 
-
                 ProcessEarphonePosition(segmentStruct, colorTex.width, (int)CanvasTransform.sizeDelta.y);
                 ProcessSideEarBand(segmentStruct.topHeadPositionRatio, Headphone_Core_A, colorTex.width, (int)CanvasTransform.sizeDelta.y);
-
+                
                 //Output
                 DebugCanvas.gameObject.SetActive(false);
                 IOUtility.CreateDirectoryIfNotExist(Application.streamingAssetsPath, HeadphoneStatic.Files.Output, folder_array[index]);
                 string outputPath = Path.Combine(Application.streamingAssetsPath, HeadphoneStatic.Files.Output, folder_array[index], HeadphoneStatic.Files.OutputFileName);
                 this.m_headphoneOutput.SaveTex2DToPath(this.m_headphoneOutput.TakeCameraAsTex2D(colorTex.width, colorTex.height), outputPath);
 
-#if UNITY_EDITOR
-                await Task.Delay(2000);
-#else
-                await Task.Delay(500);
-#endif
+                await Task.Delay(100);
 
+                UnityEngine.Object.Destroy(colorTex); //Release memory
                 DebugCanvas.gameObject.SetActive(true);
                 _ = ProcessFolder(index + 1);
             }
@@ -154,8 +178,8 @@ namespace Hsinpa.Headphone
             float newPositionY = Mathf.Lerp(headphoneCoreImg.rectTransform.offsetMin.y, headphoneCoreImg.rectTransform.offsetMax.y, 0.85f);
 
             float aspectRatio = Headphone_Overband.sprite.rect.width / (float)Headphone_Overband.sprite.rect.height;
-            float enlargeRatio = 1.3f;
-            int heightOffset = -10; //Band won't usually locate on top of hair
+            float enlargeRatio = 1.2f;
+            int heightOffset = -1; //Band won't usually locate on top of hair
             float expectHeight = (headBandPosRatio.y * colorTexHeight) - newPositionY + heightOffset;
                   expectHeight = Mathf.Clamp(expectHeight, 50, expectHeight);
 

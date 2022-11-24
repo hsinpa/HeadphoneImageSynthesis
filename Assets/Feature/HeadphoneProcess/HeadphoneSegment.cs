@@ -92,7 +92,9 @@ namespace Hsinpa.Headphone {
             {
                 //Loop from top -> bottom, left -> right
 
-                for (int y = targetHeight - 1; y >= 0; y--)
+                int earHeightThreshold = (int)(targetHeight * 0.3f);
+
+                for (int y = targetHeight - 1; y >= earHeightThreshold; y--)
                 {
                     for (int x = 0; x < targetWidth; x++)
                     {
