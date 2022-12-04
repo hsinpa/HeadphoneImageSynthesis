@@ -22,21 +22,20 @@ namespace Hsinpa.Headphone {
         Dictionary<int, List<Vector2Int>> _targetSegmentDict = new Dictionary<int, List<Vector2Int>>();
         int _increment_id = 0;
 
-        public async Task<SegmentStruct> ProcessVisionSegment(string vision_path, int targetWidth, int targetHeight, Color targetEarColor) {
+        public async Task<SegmentStruct> ProcessVisionSegment( Texture2D segmentVisionTex, int targetWidth, int targetHeight, Color targetEarColor) {
             SegmentStruct segmentStruct = new SegmentStruct();
             _targetColorDict.Clear();
             _targetSegmentDict.Clear();
             _increment_id = 0;
             _textureSize = new Vector2(targetWidth, targetHeight);
 
-            var segVisionRaw = TextureUtility.GetTexture2DFromPath(vision_path);
 
             if (_cacheRenderTexture == null)
                 _cacheRenderTexture = TextureUtility.GetRenderTexture(targetWidth, targetHeight, depth: 0, format: RenderTextureFormat.ARGB32);
 
             _cacheRenderTexture.Release();
 
-            Graphics.Blit(segVisionRaw, _cacheRenderTexture);
+            Graphics.Blit(segmentVisionTex, _cacheRenderTexture);
 
             this._cacheTexture2D = TextureUtility.TextureToTexture2D(_cacheRenderTexture);
 
@@ -46,7 +45,7 @@ namespace Hsinpa.Headphone {
 
             var areaStructArray = await FindEarAreaStruct(targetWidth, targetHeight, targetEarColor, rawPixelData, errorRate: 0.15f);
 
-            var averageHeadTopPosition = await FindHeadponeBandPosition(targetWidth, targetHeight, step:10, HeadphoneStatic.Segment.Hair, rawPixelData, errorRate: 0.15f);
+            var averageHeadTopPosition = await FindHeadponeBandTopPosition(targetWidth, targetHeight, step:10, HeadphoneStatic.Segment.Hair, rawPixelData, errorRate: 0.15f);
 
             if (areaStructArray.Count > 0)
                 segmentStruct.ear_a = areaStructArray[0];
@@ -65,12 +64,15 @@ namespace Hsinpa.Headphone {
                 debugImage.texture = this._cacheTexture2D;
         }
 
-        private Task<Vector2> FindHeadponeBandPosition(int targetWidth, int targetHeight, int step, Color targetColor, Color[] rawPixels, float errorRate) {
+        private Task<Vector2> FindHeadponeBandTopPosition(int targetWidth, int targetHeight, int step, Color targetColor, Color[] rawPixels, float errorRate) {
             return Task.Run(() =>
             {
+
                 int stepAmount = Mathf.RoundToInt(targetWidth / (float)step);
                 for (int y = targetHeight - 1; y >= 0; y--)
                 {
+                    
+
                     for (int x = stepAmount; x < targetWidth; x += stepAmount)
                     {
                         int index = GetPixelIndex(x, y, targetWidth);
@@ -85,6 +87,40 @@ namespace Hsinpa.Headphone {
 
                 return new Vector2(targetWidth * 0.5f, targetHeight);
             });
+        }
+
+        public Vector2 FindHeadponeBandSidePosition(int max_width, int max_height, Vector2 startPointRatio, Color[] rawPixels, Vector2 moveDirVec)
+        {
+            bool proceed = true;
+
+            float accumulateX = startPointRatio.x * max_width, accumulateY = startPointRatio.y * max_height;
+
+            Debug.Log($"FindHeadponeBandSidePosition break accumulateX {accumulateX}, accumulateY {accumulateY}");
+
+            while (proceed) {
+                int x = Mathf.FloorToInt(accumulateX);
+                int y = Mathf.FloorToInt(accumulateY);
+
+                if (x >= max_width || x < 0 || y >= max_height || y < 0)
+                {
+                    Debug.Log($"FindHeadponeBandSidePosition break x {x}, y {y}");
+
+                    break;
+                };
+
+                int index = GetPixelIndex(x, y, max_width);
+
+                Color currentColor = rawPixels[index];
+
+                //Only check its not black color
+                if (currentColor.r < 0.1f && currentColor.g < 0.1f && currentColor.b < 0.1f) 
+                    return new Vector2(accumulateX / max_width, accumulateY / max_height);
+
+                accumulateX += moveDirVec.x;
+                accumulateY += moveDirVec.y;
+            }
+
+            return new Vector2(0, 0);
         }
 
         private Task<List<GeneralDataStructure.AreaStruct>> FindEarAreaStruct(int targetWidth, int targetHeight, Color targetColor, Color[] rawPixels, float errorRate) {

@@ -16,6 +16,9 @@ namespace Hsinpa.Headphone
             public const string OutputFileName = "try_on_result.jpg";
 
             public const string FlagFile = "Flag.txt";
+
+            public const int LeftEarIndex = 0;
+            public const int RightEarIndex = 1;
         }
 
         public class Segment {
@@ -29,12 +32,14 @@ namespace Hsinpa.Headphone
 
             public static Color Hair = new Color(1, 0, 0, 1);
             public static Color Face = new Color(0, 0, 1, 1);
+
         }
 
         public static Dictionary<string, Color> TargetColorDict = new Dictionary<string, Color>() {
             { Segment.LSegment30, Segment.LeftEarCol },
             { Segment.RSegment30, Segment.RightEarCol }
         };
+         
 
     }
 }

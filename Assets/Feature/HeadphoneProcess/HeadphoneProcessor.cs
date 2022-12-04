@@ -117,6 +117,8 @@ namespace Hsinpa.Headphone
                 string segVisionImagePath = Path.Combine(fullDirPath, HeadphoneStatic.Files.SegVision);
 
                 var colorTex = TextureUtility.GetTexture2DFromPath(rawColorImagePath);
+                var segVisionTex = TextureUtility.GetTexture2DFromPath(segVisionImagePath);
+
                 float aspectRatio = colorTex.width / (float)colorTex.height;
                 
                 RawColorImage.texture = colorTex;
@@ -129,12 +131,13 @@ namespace Hsinpa.Headphone
 
             if (HeadphoneStatic.TargetColorDict.TryGetValue(folder_array[index], out Color targetColor)) { 
             
-                HeadphoneSegment.SegmentStruct segmentStruct =  await m_headphoneSegment.ProcessVisionSegment(segVisionImagePath, visionWidth, HeadphoneStatic.Segment.Height, targetColor);
+                HeadphoneSegment.SegmentStruct segmentStruct =  await m_headphoneSegment.ProcessVisionSegment(segVisionTex, visionWidth, HeadphoneStatic.Segment.Height, targetColor);
                 m_headphoneSegment.SetDebugTexture(TestElementA);
 
                 ProcessEarphonePosition(segmentStruct, colorTex.width, (int)CanvasTransform.sizeDelta.y);
                 ProcessSideEarBand(segmentStruct.topHeadPositionRatio, Headphone_Core_A, colorTex.width, (int)CanvasTransform.sizeDelta.y);
-                
+                ReProcessSideEarBarSideBand(index, segVisionTex);
+
                 //Output
                 DebugCanvas.gameObject.SetActive(false);
                 IOUtility.CreateDirectoryIfNotExist(Application.streamingAssetsPath, HeadphoneStatic.Files.Output, folder_array[index]);
@@ -143,15 +146,17 @@ namespace Hsinpa.Headphone
 
                 await Task.Delay(100);
 
-                UnityEngine.Object.Destroy(colorTex); //Release memory
-                DebugCanvas.gameObject.SetActive(true);
-                _ = ProcessFolder(index + 1);
-            }
-            }
-            catch {
+                    UnityEngine.Object.Destroy(colorTex); //Release memory
+                    UnityEngine.Object.Destroy(segVisionTex); //Release memory
 
-                _ = ProcessFolder(index + 1);
+                    DebugCanvas.gameObject.SetActive(true);
+                    _ = ProcessFolder(index + 1);
+                }
+            }
+            catch(System.Exception ex) {
 
+                Debug.LogError(ex.Message);
+                //_ = ProcessFolder(index + 1);
             }
         }
 
@@ -170,25 +175,61 @@ namespace Hsinpa.Headphone
             coreTransform.anchoredPosition = new Vector2(newPositionX, newPositionY);
         }
 
-        private void ProcessSideEarBand(Vector2 headBandPosRatio, Image headphoneCoreImg, int colorTexWidth, int colorTexHeight)
+        private RectTransform ProcessSideEarBand(Vector2 headBandPosRatio, Image headphoneCoreImg, int colorTexWidth, int colorTexHeight)
         {
             //Place to locate band's lower part
             RectTransform coreTransform = Headphone_Overband.GetComponent<RectTransform>();
             float newPositionX = Mathf.Lerp(headphoneCoreImg.rectTransform.offsetMin.x, headphoneCoreImg.rectTransform.offsetMax.x, 0.5f);
-            float newPositionY = Mathf.Lerp(headphoneCoreImg.rectTransform.offsetMin.y, headphoneCoreImg.rectTransform.offsetMax.y, 0.85f);
+            float newPositionY = Mathf.Lerp(headphoneCoreImg.rectTransform.offsetMin.y, headphoneCoreImg.rectTransform.offsetMax.y, 0.87f);
 
             float aspectRatio = Headphone_Overband.sprite.rect.width / (float)Headphone_Overband.sprite.rect.height;
-            float enlargeRatio = 1.2f;
-            int heightOffset = -1; //Band won't usually locate on top of hair
-            float expectHeight = (headBandPosRatio.y * colorTexHeight) - newPositionY + heightOffset;
+            float enlargeRatio = 1.0f;
+            float expectHeight = (headBandPosRatio.y * colorTexHeight) - newPositionY ;
+                  expectHeight = expectHeight + (expectHeight * 0.00f);
                   expectHeight = Mathf.Clamp(expectHeight, 50, expectHeight);
 
             float expectWidth = (expectHeight * aspectRatio);
-
-            Debug.Log($"ProcessEarBand aspectRatio {aspectRatio}, width {expectWidth}, height {expectHeight}");
+            Debug.Log($"ProcessEarBand colorTexHeight {colorTexHeight}, aspectRatio {aspectRatio}, headBandPosRatio {headBandPosRatio},  width {expectWidth}, height {expectHeight}");
 
             coreTransform.sizeDelta = new Vector2(expectWidth, expectHeight) * enlargeRatio;
             coreTransform.anchoredPosition = new Vector2(newPositionX, newPositionY);
+
+            return coreTransform;
+        }
+
+        private RectTransform ReProcessSideEarBarSideBand(int index, Texture2D segVisionTex) {
+
+            RectTransform coreTransform = Headphone_Overband.GetComponent<RectTransform>();
+
+            float earBandAspectRatio = coreTransform.sizeDelta.x / (float)coreTransform.sizeDelta.y;
+            Vector2 originPos = coreTransform.anchoredPosition;
+            Vector2 LeftDir = new Vector2(-earBandAspectRatio, 1), RightDir = new Vector2(earBandAspectRatio, 1);
+            Vector2 OffsetDir = (index == HeadphoneStatic.Files.LeftEarIndex) ? LeftDir : RightDir;
+            Vector2 earBandTopStartPoint = new Vector2((index == HeadphoneStatic.Files.LeftEarIndex) ? coreTransform.offsetMin.x : coreTransform.offsetMax.x,
+                                                        coreTransform.offsetMax.y - (coreTransform.sizeDelta.y * 0.25f));
+            Vector2 earBandTopStartPointRatio = new Vector2(earBandTopStartPoint.x / CanvasTransform.sizeDelta.x, earBandTopStartPoint.y / CanvasTransform.sizeDelta.y);
+
+            Vector2 newWidth = m_headphoneSegment.FindHeadponeBandSidePosition(segVisionTex.width, segVisionTex.height, earBandTopStartPointRatio,
+                                                                                segVisionTex.GetPixels(), OffsetDir);
+
+            if (newWidth.x < 0.1f || newWidth.y < 0.1f) return coreTransform;
+
+            newWidth.x = newWidth.x * CanvasTransform.sizeDelta.x;
+            newWidth.y = newWidth.y * CanvasTransform.sizeDelta.y;
+
+            Vector2 widthOffset = newWidth - earBandTopStartPoint;
+            widthOffset.x = Mathf.Abs(widthOffset.x);
+            widthOffset.y = Mathf.Abs(widthOffset.y);
+
+            //If the change is too huge, then stay with current size delta
+            //if (widthOffset.magnitude > 40) return coreTransform;
+
+            Debug.Log($"EarbandTop StartPoin {earBandTopStartPoint}, widthOffset {widthOffset}, newWidth {newWidth}");
+
+            coreTransform.sizeDelta = coreTransform.sizeDelta + widthOffset;
+            coreTransform.anchoredPosition = originPos;
+
+            return coreTransform;
         }
 
         private void SetSpirteByDirection(string direction) { 

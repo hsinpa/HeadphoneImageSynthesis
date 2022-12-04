@@ -3,7 +3,7 @@ guid: c63cfe85c9a13304c9e789f36bb2fb4d
 TextureImporter:
   internalIDToNameTable: []
   externalObjects: {}
-  serializedVersion: 11
+  serializedVersion: 12
   mipmaps:
     mipMapMode: 0
     enableMipMap: 0
@@ -63,6 +63,7 @@ TextureImporter:
   textureFormatSet: 0
   ignorePngGamma: 0
   applyGammaDecoding: 0
+  cookieLightType: 1
   platformSettings:
   - serializedVersion: 3
     buildTarget: DefaultTexturePlatform
@@ -131,12 +132,12 @@ TextureImporter:
       name: R30_1_0
       rect:
         serializedVersion: 2
-        x: 18
-        y: 86
-        width: 664
-        height: 527
+        x: 10
+        y: 75
+        width: 490
+        height: 363
       alignment: 9
-      pivot: {x: 0.2524868, y: 0.045125466}
+      pivot: {x: 0.1367179, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
       outline: []
       physicsShape: []
